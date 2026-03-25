@@ -1,0 +1,30 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build outputs
+out/
+dist/
+build/
+*.vsix
+
+# IDE files
+.vscode/
+
+# Python logs and cache
+auto_accept_log.txt
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Other
+cv2_match_debug.png
