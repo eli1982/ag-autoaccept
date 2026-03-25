@@ -138,15 +138,19 @@ def background_click(hwnd, x, y):
     time.sleep(0.05)
     user32.PostMessageW(hwnd, WM_LBUTTONUP, 0, lParam)
 
-def background_scroll(hwnd, dist):
-    """Sends a mouse wheel scroll to the window."""
+def background_scroll(hwnd, dist, x=None, y=None):
+    """Sends a mouse wheel scroll to the window at the specified coordinates."""
     # dist is in multiples of 120 (one notch)
     wParam = (dist << 16)
-    # Get window center for scroll target
+    
     rect = wintypes.RECT()
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
-    x = (rect.right - rect.left) // 2
-    y = (rect.bottom - rect.top) // 2
+    w = rect.right - rect.left
+    h = rect.bottom - rect.top
+    
+    if x is None: x = w // 2
+    if y is None: y = h // 2
+    
     lParam = (y << 16) | x
     user32.PostMessageW(hwnd, WM_MOUSEWHEEL, wParam, lParam)
 
@@ -354,7 +358,8 @@ def main():
                 # --- Idle Peek per window ---
                 if not clicked_this_window and (current_time - heartbeat_time > 15) and (current_time - last_scan_time > 20):
                     log_ipc(f"Idle peek in background window: {window.title}")
-                    background_scroll(hwnd, -800)
+                    # Target the right side (50px from edge) for most main app windows
+                    background_scroll(hwnd, -800, x=window.width - 50)
                     last_scan_time = current_time
 
             time.sleep(0.5)
