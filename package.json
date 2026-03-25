@@ -1,0 +1,88 @@
+{
+  "name": "ag-autoaccept",
+  "displayName": "Antigravity Auto Accept",
+  "publisher": "antigravity",
+  "description": "Automatically approves Continue/Approve buttons for Antigravity",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/undefined/ag-autoaccept"
+  },
+  "license": "MIT",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "icon": "media/logo.png",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ag-autoaccept.toggle",
+        "title": "Auto-Accept: Toggle ON/OFF"
+      },
+      {
+        "command": "ag-autoaccept.showLogs",
+        "title": "Auto-Accept: Show Logs"
+      },
+      {
+        "command": "ag-autoaccept.installDeps",
+        "title": "Auto-Accept: Install Python Dependencies"
+      },
+      {
+        "command": "ag-autoaccept.openDashboard",
+        "title": "Auto-Accept: Open Dashboard"
+      }
+    ],
+    "configuration": {
+      "title": "Antigravity Auto-Accept",
+      "properties": {
+        "ag-autoaccept.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to the Python executable."
+        }
+      }
+    },
+    "viewContainers": {
+      "activitybar": [
+        {
+          "id": "ag-autoaccept-panel",
+          "title": "Auto-Accept",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ag-autoaccept-panel": [
+        {
+            "type": "webview",
+            "id": "ag-autoaccept-view",
+            "name": "Auto-Accept Dashboard",
+            "icon": "media/icon.svg"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.50.0",
+    "typescript": "^5.2.2"
+  }
+}

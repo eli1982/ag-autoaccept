@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Python Engine (Local)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/auto_accept.py",
+            "console": "integratedTerminal",
+            "args": ["--debug"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Build and Package Extension",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "compile"
+            ],
+            "postDebugTask": "Package Extension"
+        }
+    ]
+}

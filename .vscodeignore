@@ -1,0 +1,18 @@
+.vscode/**
+.vscode-test/**
+out/test/**
+src/**
+.gitignore
+.vscodeignore
+tsconfig.json
+vsc-extension-quickstart.md
+node_modules/**
+**/tsconfig.json
+**/*.map
+test/**
+.git/**
+Hotspot_tool.py
+run_auto_accept.bat
+test_auto_accept.html
+requirements.txt
+# Keeping auto_accept.py and targets/ as they are needed by the engine at runtime

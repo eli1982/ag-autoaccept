@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Accept Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #252526;
+            border: 1px solid #3c3c3c;
+            padding: 24px;
+            border-radius: 6px;
+            width: 300px;
+            text-align: center;
+        }
+        .btn-approve {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+        .btn-approve:hover {
+            background-color: #1177bb;
+        }
+        #status {
+            margin-top: 16px;
+            color: #89d185;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h3>Antigravity Chat (Simulation)</h3>
+        <p>Do you want to run this command?</p>
+        <button id="approveBtn" class="btn-approve">Approve</button>
+        <div id="status">Command Approved!</div>
+    </div>
+
+    <script>
+        const btn = document.getElementById('approveBtn');
+        const status = document.getElementById('status');
+
+        btn.addEventListener('click', () => {
+            btn.style.display = 'none';
+            status.style.display = 'block';
+            
+            // Reset after 4 seconds to allow testing again
+            setTimeout(() => {
+                btn.style.display = 'inline-block';
+                status.style.display = 'none';
+            }, 4000);
+        });
+    </script>
+</body>
+</html>
