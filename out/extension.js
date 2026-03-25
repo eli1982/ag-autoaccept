@@ -9,6 +9,7 @@ function activate(context) {
     let pythonProcess;
     let statusBarItem;
     let clickCounter = context.globalState.get('clicksSaved', 0);
+    let autoStart = context.globalState.get('autoStart', false);
     let outputChannel = vscode.window.createOutputChannel('Antigravity Auto-Accept');
     let logBuffer = [];
     let viewProvider;
@@ -31,6 +32,7 @@ function activate(context) {
             return;
         const scriptPath = path.join(context.extensionPath, 'auto_accept.py');
         const pythonPath = vscode.workspace.getConfiguration('ag-autoaccept').get('pythonPath', 'python');
+        context.globalState.update('autoStart', true);
         outputChannel.appendLine(`[Extension] Starting Python engine: ${pythonPath} ${scriptPath}`);
         pythonProcess = cp.spawn(pythonPath, [scriptPath, '--ipc'], {
             cwd: context.extensionPath,
@@ -78,6 +80,7 @@ function activate(context) {
             pythonProcess.kill();
             pythonProcess = undefined;
         }
+        context.globalState.update('autoStart', false);
         updateUI(false);
     }
     function handleIPC(msg) {
@@ -141,7 +144,12 @@ function activate(context) {
             pythonProcess.stdin.write('heartbeat\n');
         }
     }));
-    updateUI(false);
+    if (autoStart) {
+        startEngine();
+    }
+    else {
+        updateUI(false);
+    }
 }
 class AutoAcceptViewProvider {
     _extensionUri;

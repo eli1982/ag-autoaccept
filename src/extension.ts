@@ -7,6 +7,7 @@ export function activate(context: vscode.ExtensionContext) {
     let pythonProcess: cp.ChildProcess | undefined;
     let statusBarItem: vscode.StatusBarItem;
     let clickCounter = context.globalState.get<number>('clicksSaved', 0);
+    let autoStart = context.globalState.get<boolean>('autoStart', false);
     let outputChannel = vscode.window.createOutputChannel('Antigravity Auto-Accept');
     let logBuffer: string[] = [];
     let viewProvider: AutoAcceptViewProvider;
@@ -34,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
         const scriptPath = path.join(context.extensionPath, 'auto_accept.py');
         const pythonPath = vscode.workspace.getConfiguration('ag-autoaccept').get<string>('pythonPath', 'python');
 
+        context.globalState.update('autoStart', true);
         outputChannel.appendLine(`[Extension] Starting Python engine: ${pythonPath} ${scriptPath}`);
         
         pythonProcess = cp.spawn(pythonPath, [scriptPath, '--ipc'], {
@@ -86,6 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
             pythonProcess.kill();
             pythonProcess = undefined;
         }
+        context.globalState.update('autoStart', false);
         updateUI(false);
     }
 
@@ -158,7 +161,11 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
-    updateUI(false);
+    if (autoStart) {
+        startEngine();
+    } else {
+        updateUI(false);
+    }
 }
 
 class AutoAcceptViewProvider implements vscode.WebviewViewProvider {
