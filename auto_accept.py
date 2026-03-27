@@ -133,6 +133,9 @@ def capture_window_to_pil(hwnd):
 
 def background_click(hwnd, x, y):
     """Sends a click to a specific coordinate within a window without moving the mouse."""
+    # Ensure coordinates are standard Python ints (numpy ints can cause ctypes errors)
+    x = int(x)
+    y = int(y)
     lParam = (y << 16) | x
     user32.PostMessageW(hwnd, WM_LBUTTONDOWN, 1, lParam)
     time.sleep(0.05)
@@ -306,13 +309,33 @@ def main():
                             loc = pyautogui.locate(needle, haystack_rgb, confidence=conf)
                             
                             if loc:
-                                found_any_global = True
                                 if (last_action["image"] == img_path and 
                                     last_action["location"] == (loc.left, loc.top) and 
                                     last_action["hwnd"] == hwnd and
                                     current_time - last_action["time"] < 3):
                                     if args.debug: log_ipc(f"Skipping '{os.path.basename(img_path)}' - recently clicked.")
                                     continue
+
+                                found_any_global = True
+                                
+                                # Expansion Check
+                                fn = os.path.basename(img_path).lower()
+                                is_expand = any(k in fn for k in ["expand", "input", "required"])
+                                is_run = any(k in fn for k in ["run", "approve"])
+
+                                if is_expand:
+                                    if expansion_per_window.get(hwnd, False):
+                                        if args.debug: log_ipc(f"Skipping expansion for '{window.title}' - already expanded.")
+                                        continue
+                                    
+                                    log_ipc(f"Expansion target '{os.path.basename(img_path)}' detected. Background scrolling.")
+                                    background_scroll(hwnd, -800, x=window.width - 50)
+                                    expansion_per_window[hwnd] = True
+                                
+                                if is_run:
+                                    if expansion_per_window.get(hwnd, False):
+                                        log_ipc(f"Run target '{os.path.basename(img_path)}' detected. Resetting expansion state for '{window.title}'.")
+                                    expansion_per_window[hwnd] = False
 
                                 # --- Action! ---
                                 msg = f"Found '{os.path.basename(img_path)}' in '{window.title}'! Background clicking..."
@@ -329,26 +352,6 @@ def main():
                                 
                                 if args.ipc:
                                     send_ipc({"type": "click", "image": os.path.basename(img_path), "saved": 1})
-
-                                # Expansion Check
-                                fn = os.path.basename(img_path).lower()
-                                is_expand = any(k in fn for k in ["expand", "input", "required"])
-                                is_run = any(k in fn for k in ["run", "approve"])
-
-                                if is_expand:
-                                    if expansion_per_window.get(hwnd, False):
-                                        if args.debug: log_ipc(f"Skipping expansion for '{window.title}' - already expanded.")
-                                        continue
-                                    
-                                    log_ipc("Expansion detected. Background scrolling.")
-                                    # Use same scroll params as idle peek
-                                    background_scroll(hwnd, -800, x=window.width - 50)
-                                    expansion_per_window[hwnd] = True
-                                
-                                if is_run:
-                                    if expansion_per_window.get(hwnd, False):
-                                        log_ipc(f"Run action detected. Resetting expansion state for '{window.title}'.")
-                                    expansion_per_window[hwnd] = False
 
                                 last_action = {"image": img_path, "location": (loc.left, loc.top), "time": current_time, "hwnd": hwnd}
                                 clicked_this_window = True
