@@ -11,6 +11,8 @@ import sys
 import threading
 from PIL import Image
 import numpy as np
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # Win32 Constants
 WM_LBUTTONDOWN = 0x0201
@@ -69,6 +71,7 @@ class WINDOWPLACEMENT(ctypes.Structure):
 # Global tracking for IPC
 heartbeat_time = time.time()
 ipc_connected = True
+needs_reload = True # Trigger initial load
 
 def stdin_listener():
     """Thread function to read commands from the VS Code extension."""
@@ -84,6 +87,23 @@ def stdin_listener():
         except: 
             ipc_connected = False
             break
+
+class ReloadHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        global needs_reload
+        if not event.is_directory: 
+            log_ipc(f"FS: {event.src_path} modified")
+            needs_reload = True
+    def on_created(self, event):
+        global needs_reload
+        if not event.is_directory: 
+            log_ipc(f"FS: {event.src_path} created")
+            needs_reload = True
+    def on_deleted(self, event):
+        global needs_reload
+        if not event.is_directory: 
+            log_ipc(f"FS: {event.src_path} deleted")
+            needs_reload = True
 
 def send_ipc(data):
     print(json.dumps(data), flush=True)
@@ -174,22 +194,29 @@ def main():
         t.start()
         log_ipc("Python engine started in Background Mode.")
 
-    global heartbeat_time
+    global heartbeat_time, needs_reload
     last_action = {"image": "", "location": (0,0), "time": 0, "hwnd": 0}
     last_scan_time = time.time()
     button_images = []
-    last_reload_time = 0
     expansion_per_window = {} # hwnd -> bool (True if expanded)
+    agent_on_path = None
 
     # --- Cache for Image Targets ---
     image_cache = {} # path -> {"image": PIL_Image, "hotspot": dict, "confidence": float, "mtime": float}
+
+    # --- Watchdog Setup ---
+    if not os.path.exists("targets"): os.makedirs("targets")
+    observer = Observer()
+    observer.schedule(ReloadHandler(), "targets", recursive=False)
+    observer.start()
 
     try:
         while True:
             current_time = time.time()
             
-            # --- Hot-Reload (Every 10s) ---
-            if current_time - last_reload_time > 10:
+            # --- Template Reload ---
+            if needs_reload:
+                needs_reload = False
                 new_image_paths = glob.glob(os.path.join("targets", "*.[pj][np][ge]*"))
                 
                 # Check for new or removed files
@@ -232,14 +259,16 @@ def main():
                     except Exception as e:
                         if args.debug: log_ipc(f"Failed to load {img_path}: {e}")
 
-                if loaded_any:
-                    log_ipc(f"Reloaded templates. Total: {len(image_cache)} image(s) active.")
                 
-                button_images = list(image_cache.keys())
-                last_reload_time = current_time
+                # Separate agent_on from clickable buttons
+                button_images = [img for img in image_cache.keys() if "agent_on" not in os.path.basename(img).lower()]
+                agent_on_path = next((img for img in image_cache.keys() if "agent_on" in os.path.basename(img).lower()), None)
+                
+                if args.debug:
+                    log_ipc(f"Reloaded templates. Total: {len(image_cache)} active. Master Switch: {os.path.basename(agent_on_path) if agent_on_path else 'None'}")
 
             if not image_cache:
-                time.sleep(1)
+                time.sleep(0.5)
                 continue
 
             # --- Target Windows ---
@@ -289,12 +318,47 @@ def main():
                     haystack.save("debug_haystack.png")
                     # log_ipc(f"Debug: Captured '{window.title}' ({haystack.width}x{haystack.height})")
 
-                # 2. Scan
+                # 2. Condition Check (agent_on.jpg)
+                # If agent_on.jpg is present in targets/, it acts as a master switch.
+                # If it's NOT found in the current window, we skip detection and clicking.
+                # Default logic: 
+                #   - If no indicator defined, proceed.
+                #   - If indicator defined but capture failed, skip (safety first).
+                #   - If indicator defined and capture OK, check presence.
+                should_process = True
+                if agent_on_path:
+                    should_process = False # Default to False if indicator is required
+                    if haystack:
+                        haystack_rgb = haystack.convert("RGB")
+                        hw, hh = haystack_rgb.size
+                        item = image_cache.get(agent_on_path)
+                        if item:
+                            try:
+                                # Check if the "Agent ON" indicator is visible
+                                # Note: We use a higher default confidence (0.9) for the master switch 
+                                # to avoid false positives from status icons.
+                                indicator_conf = max(item["confidence"], 0.9) 
+                                if "confidence" in (item["hotspot"] or {}):
+                                    indicator_conf = item["hotspot"]["confidence"] # Respect JSON override
+
+                                loc_on = pyautogui.locate(item["image"], haystack_rgb, confidence=indicator_conf)
+                                if loc_on:
+                                    should_process = True
+                                    if args.debug:
+                                        log_ipc(f"Agent ON for '{window.title}' - Found '{os.path.basename(agent_on_path)}' at {loc_on} (conf={indicator_conf})")
+                                elif args.debug:
+                                    log_ipc(f"Agent OFF for '{window.title}' - '{os.path.basename(agent_on_path)}' not found. Skipping.")
+                            except pyautogui.ImageNotFoundException: pass
+                            except Exception as e:
+                                if args.debug: log_ipc(f"Error checking Agent status: {e}")
+
+                # 3. Scan & Action
                 clicked_this_window = False
-                if haystack:
+                if haystack and should_process:
                     # Convert haystack once to RGB (cv2 likes 3 channels)
-                    haystack_rgb = haystack.convert("RGB")
-                    hw, hh = haystack_rgb.size
+                    if 'haystack_rgb' not in locals():
+                        haystack_rgb = haystack.convert("RGB")
+                        hw, hh = haystack_rgb.size
                     
                     for i, img_path in enumerate(button_images):
                         try:
@@ -379,7 +443,7 @@ def main():
                         user32.SetWindowLongW(hwnd, GWL_EXSTYLE, original_ex_style)
 
                 # --- Idle Peek per window ---
-                if not clicked_this_window and (current_time - heartbeat_time > 15) and (current_time - last_scan_time > 20):
+                if should_process and not clicked_this_window and (current_time - heartbeat_time > 15) and (current_time - last_scan_time > 20):
                     log_ipc(f"Idle peek in background window: {window.title}")
                     # Target the right side (50px from edge) for most main app windows
                     background_scroll(hwnd, -800, x=window.width - 50)
@@ -405,8 +469,10 @@ def main():
 
     except KeyboardInterrupt:
         log_ipc("Python engine stopped.")
-    except Exception as e:
-        log_ipc(f"Critical error: {str(e)}")
+    finally:
+        observer.stop()
+        observer.join()
 
 if __name__ == "__main__":
     main()
+

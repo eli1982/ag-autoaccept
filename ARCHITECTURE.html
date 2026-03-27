@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Architecture | Sketch</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a192f;
+            --accent: #64ffda;
+            --card: #112240;
+            --text: #ccd6f6;
+            --sketch-font: 'Architects Daughter', cursive;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            font-family: var(--sketch-font);
+            color: var(--accent);
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            transform: rotate(-0.5deg);
+        }
+        .container {
+            background: var(--card);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 15px 15px 0px rgba(0,0,0,0.4);
+            border: 2px solid var(--accent);
+            max-width: 1100px;
+            width: 100%;
+            position: relative;
+        }
+        .mermaid {
+            background: rgba(255,255,255,0.03);
+            padding: 30px;
+            border-radius: 4px;
+            border: 1px dashed var(--accent);
+        }
+        .info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+            font-family: var(--sketch-font);
+            font-size: 1.1em;
+        }
+        .card {
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            padding: 20px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 2px;
+        }
+        .card h3 { margin-top: 0; color: var(--accent); }
+        .back-link {
+            margin-top: 50px;
+            color: var(--accent);
+            text-decoration: none;
+            font-family: var(--sketch-font);
+            font-size: 1.4em;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .back-link:hover { border-bottom: 2px solid var(--accent); }
+    </style>
+</head>
+<body>
+    <h1>Antigravity Sketch</h1>
+    <div class="container">
+        <div class="mermaid">
+            %%{init: {'theme': 'dark', 'look': 'handDrawn', 'fontFamily': 'Architects Daughter', 'themeVariables': { 'lineColor': '#64ffda', 'primaryColor': '#112240', 'nodeBorder': '#64ffda' }}}%%
+            graph TD
+                subgraph VS ["VS CODE FRONTEND"]
+                    EXT[Extension logic]
+                    DASH[Sidebar UI]
+                end
+
+                subgraph PY ["PYTHON BACKEND"]
+                    ENG[Main loop]
+                    CV[Vision Engine]
+                    Win[Win32 Clicker]
+                end
+
+                subgraph APP ["TARGET APP"]
+                    Target[External UI]
+                end
+
+                EXT <-- "IPC (JSON)" --> ENG
+                ENG --- CV
+                CV --- ENG
+                ENG --- Win
+                Win -- "Backgrnd click" --> Target
+                Target -- "Capture" --> ENG
+        </div>
+        <div class="info">
+            <div class="card">
+                <h3>🚀 Logic</h3>
+                <p>IPC stdio bridge for fast, reliable data exchange.</p>
+            </div>
+            <div class="card">
+                <h3>👁️ Vision</h3>
+                <p>OpenCV template matching for high-precision button detection.</p>
+            </div>
+            <div class="card">
+                <h3>🖱️ Control</h3>
+                <p>Win32 PostMessage for stealth operations.</p>
+            </div>
+            <div class="card">
+                <h3>📦 State</h3>
+                <p>Advanced per-window expansion state management.</p>
+            </div>
+        </div>
+    </div>
+    <a href="ARCHITECTURE.md" class="back-link">← Return to Overview</a>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'dark',
+            look: 'handDrawn',
+            fontFamily: 'Architects Daughter',
+            securityLevel: 'loose'
+        });
+    </script>
+</body>
+</html>
+
