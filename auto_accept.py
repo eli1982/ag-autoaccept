@@ -68,17 +68,22 @@ class WINDOWPLACEMENT(ctypes.Structure):
 
 # Global tracking for IPC
 heartbeat_time = time.time()
+ipc_connected = True
 
 def stdin_listener():
     """Thread function to read commands from the VS Code extension."""
-    global heartbeat_time
+    global heartbeat_time, ipc_connected
     while True:
         try:
             line = sys.stdin.readline()
-            if not line: break
+            if not line: 
+                ipc_connected = False
+                break
             cmd = line.strip().lower()
             if cmd == "heartbeat": heartbeat_time = time.time()
-        except: break
+        except: 
+            ipc_connected = False
+            break
 
 def send_ipc(data):
     print(json.dumps(data), flush=True)
@@ -379,6 +384,22 @@ def main():
                     # Target the right side (50px from edge) for most main app windows
                     background_scroll(hwnd, -800, x=window.width - 50)
                     last_scan_time = current_time
+
+            # --- IPC Safety ---
+            if args.ipc:
+                # If IPC connection is lost or heartbeat is too old (1 hour), exit.
+                # 15s is the normal idle peek window, so if we haven't seen a heartbeat in 60s,
+                # we might be orphaned if the connection says we are disconnected.
+                if not ipc_connected:
+                    log_ipc("IPC connection lost. Shutting down.")
+                    break
+                
+                # Extended safety: self-terminate if no heartbeat for 10 minutes (orphaned)
+                if current_time - heartbeat_time > 600:
+                    # In normal use, heartbeats happen on setiap activity or idle peek.
+                    # 600s is very safe.
+                    log_ipc("No heartbeats for 10 minutes. Orphaned? Shutting down.")
+                    break
 
             time.sleep(0.5)
 
