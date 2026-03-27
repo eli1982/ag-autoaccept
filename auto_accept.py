@@ -171,6 +171,7 @@ def main():
     last_scan_time = time.time()
     button_images = []
     last_reload_time = 0
+    expansion_per_window = {} # hwnd -> bool (True if expanded)
 
     # --- Cache for Image Targets ---
     image_cache = {} # path -> {"image": PIL_Image, "hotspot": dict, "confidence": float, "mtime": float}
@@ -331,9 +332,23 @@ def main():
 
                                 # Expansion Check
                                 fn = os.path.basename(img_path).lower()
-                                if any(k in fn for k in ["expand", "input", "required"]):
+                                is_expand = any(k in fn for k in ["expand", "input", "required"])
+                                is_run = any(k in fn for k in ["run", "approve"])
+
+                                if is_expand:
+                                    if expansion_per_window.get(hwnd, False):
+                                        if args.debug: log_ipc(f"Skipping expansion for '{window.title}' - already expanded.")
+                                        continue
+                                    
                                     log_ipc("Expansion detected. Background scrolling.")
-                                    background_scroll(hwnd, -600)
+                                    # Use same scroll params as idle peek
+                                    background_scroll(hwnd, -800, x=window.width - 50)
+                                    expansion_per_window[hwnd] = True
+                                
+                                if is_run:
+                                    if expansion_per_window.get(hwnd, False):
+                                        log_ipc(f"Run action detected. Resetting expansion state for '{window.title}'.")
+                                    expansion_per_window[hwnd] = False
 
                                 last_action = {"image": img_path, "location": (loc.left, loc.top), "time": current_time, "hwnd": hwnd}
                                 clicked_this_window = True
